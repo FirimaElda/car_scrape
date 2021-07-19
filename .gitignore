@@ -1,3 +1,7 @@
+# Exclude crawled files
+*.csv
+
+
 # Exclude PyCharm files
 .idea
 

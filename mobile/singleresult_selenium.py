@@ -1,7 +1,8 @@
+import csv
+
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.firefox.options import Options
-import re
 
 
 def get_driver():
@@ -11,43 +12,46 @@ def get_driver():
     return driver
 
 
-# Returns a list of links from the result page.
-def extract_results(url):
+def is_there_next_page(searchurl):
     driver = get_driver()
-    driver.get(url)
+    driver.get(searchurl)
     try:
-        a = driver.find_elements_by_xpath("//*[contains(@href, 'fahrzeuge/details')]")
-        linklist = [links.get_attribute('href') for links in a]
-        return linklist
+        nexturlelement = driver.find_element_by_xpath("//span[contains(@class, 'btn btn--orange btn--s "
+                                                      "next-resultitems-page')]")
+        nexturlelement.get_attribute('data-href')
+    except NoSuchElementException:
+        print('No more cars in this search!')
+        return False
     finally:
         driver.quit()
+        return True
 
 
-def get_next_page_url(url):
+def get_next_search_url(searchurl):
     driver = get_driver()
-    driver.get(url)
+    driver.get(searchurl)
     try:
-        nexturlelement = driver.find_element_by_xpath("//*[contains(text(), 'Weitere Angebote')]")
+        nexturlelement = driver.find_element_by_xpath("//span[contains(@class, 'btn btn--orange btn--s "
+                                                      "next-resultitems-page')]")
         return nexturlelement.get_attribute('data-href')
     except NoSuchElementException:
         print('No more cars in this search!')
-        return None
     finally:
         driver.quit()
 
 
-# Takes the URL of a car search and returns a list of prices for the offers on that search page.
-def get_prices_from_results_url(url):
+# Returns a list of offers and writes the offer URLs to a csv file.
+def get_offers_from_results_url(url):
     driver = get_driver()
     driver.get(url)
     try:
-        priceelements = driver.find_elements_by_xpath("//div[contains(@class, 'price-block')]")
-        pricelist = [re.search(r'(\d*\.\d*) €', price.text) for price in priceelements]
-        pricelistint = [int(re.sub(r'\.', '', pricere.group(1))) for pricere in pricelist if pricere is not None]
-        print(len(pricelist))
-        print(pricelist)
-        print(pricelistint)
-        return priceelements
+        offerelements = driver.find_elements_by_xpath("//a[contains(@class, 'link--muted no--text--decoration "
+                                                      "result-item')]")
+        with open('offerurls.csv', 'a', encoding='UTF8', newline='') as f:
+            for offer in offerelements:
+                url = offer.get_attribute('href')
+                writer = csv.writer(f, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+                writer.writerow([url])
     except NoSuchElementException:
         print('No price elements found!')
         return None

@@ -1,7 +1,11 @@
 import argparse
+import os
+import re
+
+import pandas
+
 import mobile.singleresult as sr
 import mobile.singleresult_selenium as srs
-import re
 
 
 def get_next_result_page_url(resulturl):
@@ -27,21 +31,16 @@ if __name__ == '__main__':
     print('-----------------------------------------------------')
     print('Cars on first page: ' + str(len(carres)))
     print('-----------------------------------------------------')
-    print('Getting prices of cars...')
-    srs.get_prices_from_results_url(args.result_URL)
-    if False:
-        print('Building list of cars...')
-        currurl = args.result_URL
-        iternr = 0
-        carurllist = []
-        while currurl is not None:
-            iternr += 1
-            print('Getting cars of page ' + str(iternr) + '...')
-            currcars = srs.extract_results(currurl)
-            print('Number of cars on page: ' + str(len(currcars)))
-            carurllist.extend(currcars)
-            currurl = srs.get_next_page_url(currurl)
-        print('Done building list. Got ' + str(len(carurllist)) + ' car URLs.')
-        print('Working through scraped cars...')
-        pricelist = [srs.get_price_from_offer_url(carurl) for carurl in carurllist]
-        print(pricelist)
+    print('Getting offer URLs...')
+    # remove old results before starting anew...
+    os.remove('offerurls.csv')
+    currurl = args.result_URL
+    pagenr = 0
+    while currurl is not None:
+        pagenr += 1
+        print('Crawling page ' + str(pagenr))
+        srs.get_offers_from_results_url(currurl)
+        currurl = srs.get_next_search_url(currurl)
+    print('Processing offers...')
+    df = pandas.read_csv('offerurls.csv', header=None)
+    print(df)
